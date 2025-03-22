@@ -1,0 +1,134 @@
+C51 COMPILER V9.54   MAIN                                                                  05/27/2024 20:31:45 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main.
+                    -lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*
+   2                  仅包含数码管和按键(使用定时器2)
+   3                  无超声波其他模块。
+   4                  
+   5                  Finish:2024/5/25  21:40
+   6          */
+   7          
+   8          #include <STC15F2K60S2.H>
+   9          #include "configure.h"
+  10          /************参数区*****************/
+  11          u8 key_down_t = 0;      //扫描一次按键所需时间
+  12          u8 key_old,key_val,key_down,key_up;
+  13          u8 mode=1;//界面
+  14          
+  15          
+  16          /************函数区*****************/
+  17          u8 key_read()   //按键响应函数
+  18          {                               //矩阵按键
+  19   1              u8 temp = 0;
+  20   1              ET0 = 0;
+  21   1              P35=0;P34=1;
+  22   1              if(P32==0)      temp=13;
+  23   1              if(P33==0)      temp=12;
+  24   1              if(P32==0&&P33==0)      temp=23;        //处理双按键、s12+s13同时按下
+  25   1              P35=1;P34=0;
+  26   1              if(P32==0)      temp=17;
+  27   1              if(P33==0)      temp=16;
+  28   1              ET0 = 1;
+  29   1              return temp;
+  30   1      }
+  31          /****************************/
+  32          void key_work()
+  33          {
+  34   1              if(key_down_t)  return;
+  35   1              key_down_t=1;
+  36   1              key_val = key_read();   //三行按键的处理
+  37   1              key_down = key_val&(key_val^key_old);
+  38   1              key_up  = ~key_val&(key_val^key_old);
+  39   1              key_old = key_val;
+  40   1              
+  41   1              if(key_down==12)        //S12按下有效，界面切换1、2
+  42   1              {
+  43   2                      mode++;
+  44   2                      if(mode==3)     mode=1;
+  45   2              }
+  46   1              if(key_up==12)          //S12松开有效
+  47   1              {
+  48   2                      
+  49   2              }
+  50   1              //......
+  51   1      }
+  52          void smg_work()
+  53          {
+  54   1              if(mode==1)//界面1
+C51 COMPILER V9.54   MAIN                                                                  05/27/2024 20:31:45 PAGE 2   
+
+  55   1              {       //显示为：123  1.23
+  56   2                      smg_data[0] = SMG_NoDot[1];
+  57   2                      smg_data[1] = SMG_NoDot[2];
+  58   2                      smg_data[2] = SMG_NoDot[3];
+  59   2                      smg_data[3] = 0xff;     smg_data[4] = 0xff;//0xff显示空白
+  60   2                      smg_data[5] = SMG_Dot[1];
+  61   2                      smg_data[6] = SMG_NoDot[2];
+  62   2                      smg_data[7] = SMG_NoDot[3];
+  63   2              }
+  64   1              if(mode==2)//界面2
+  65   1              {
+  66   2                      
+  67   2              }
+  68   1              //......
+  69   1      }
+  70          /*
+  71                  使用定时器2：
+  72                  先isp生成，再添加最后两行就可；
+  73                  16位自动装载，12T，和定时器0和1一样使用
+  74          */
+  75          void Timer2Init(void)           //1毫秒@12.000MHz
+  76          {
+  77   1              AUXR &= 0xFB;
+  78   1              T2L = 0x18;
+  79   1              T2H = 0xFC;
+  80   1              AUXR |= 0x10;
+  81   1              IE2 |=0x04;             
+  82   1              EA = 1;
+  83   1      }
+  84          void system_init()//初始化函数
+  85          {
+  86   1              HC138_Init(4,0xff);
+  87   1              HC138_Init(5,0x00);
+  88   1              Timer2Init();
+  89   1      }
+  90          
+  91          void main()
+  92          {
+  93   1              system_init();
+  94   1              while(1)
+  95   1              {
+  96   2                      smg_work();
+  97   2                      key_work();
+  98   2              }
+  99   1      }
+ 100          void Timer2_Routine() interrupt 12
+ 101          {
+ 102   1              if(++key_down_t==10)    key_down_t = 0;
+ 103   1              
+ 104   1              
+ 105   1              smg_bit();
+ 106   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    249    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      6    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+C51 COMPILER V9.54   MAIN                                                                  05/27/2024 20:31:45 PAGE 3   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
